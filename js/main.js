@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Ignite Fitness Coaching — behavior
+   Ujifitness — behavior
    Vanilla JS only: mobile nav, scroll-reveal animations, and client-side
    form validation. No build step, no dependencies.
    ========================================================================== */

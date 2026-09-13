@@ -322,12 +322,23 @@
           </div>
         </div>
 
-        <form class="contact-form reveal" data-reveal id="contactForm" novalidate>
+        <form
+          class="contact-form reveal"
+          data-reveal
+          id="contactForm"
+          novalidate
+          action="https://formspree.io/f/xqpkvkdl"
+          method="POST"
+        >
           <!--
-            No backend is wired up yet — this form only validates and shows a
-            confirmation message in the browser. To actually receive messages,
-            point the form at a service like Formspree/Netlify Forms, or your
-            own API endpoint, and remove the JS preventDefault() in js/main.js.
+            Submits to Formspree (see the `action` above) via fetch() in
+            js/main.js, after the existing client-side validation passes.
+            The Accept: application/json header on that request tells
+            Formspree to respond with JSON instead of redirecting, so we can
+            stay on the page and show the existing success/error UI. The
+            action/method attributes above are a plain-HTML fallback only —
+            if JS is disabled, the browser submits the form normally and
+            Formspree redirects to its own default confirmation page.
           -->
           <div class="form-row">
             <label for="name">Full name <span aria-hidden="true">*</span></label>

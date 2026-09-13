@@ -102,12 +102,11 @@
   /* ---------------------------------------------------------------------
    * Contact form validation + submit handling
    *
-   * There is no backend wired up yet: submitting shows an in-page success
-   * message only. To actually receive messages, either:
-   *   1. Point the <form> at a service like Formspree or Netlify Forms and
-   *      remove the preventDefault() below, or
-   *   2. Replace the "TODO: send to backend" block with a fetch() call to
-   *      your own API endpoint.
+   * Submits to Formspree (the form's `action`) over fetch(), so the page
+   * never navigates away — a successful response shows the existing
+   * .form-success message, and a failure shows the existing .form-summary
+   * error banner. Client-side validation below still runs first and blocks
+   * the request entirely when the form is invalid.
    * ------------------------------------------------------------------- */
   var form = document.getElementById("contactForm");
 
@@ -119,6 +118,9 @@
     };
     var summary = document.getElementById("formSummary");
     var success = document.getElementById("formSuccess");
+    var submitButton = form.querySelector('button[type="submit"]');
+    var submitLabel = submitButton.querySelector(".btn-label");
+    var defaultSubmitLabel = submitLabel.textContent;
 
     var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -154,6 +156,17 @@
       });
     });
 
+    function setSubmitting(isSubmitting) {
+      submitButton.disabled = isSubmitting;
+      submitLabel.textContent = isSubmitting ? "Sending…" : defaultSubmitLabel;
+    }
+
+    function showSubmitError(message) {
+      summary.textContent = message;
+      summary.hidden = false;
+      summary.focus();
+    }
+
     form.addEventListener("submit", function (event) {
       event.preventDefault();
 
@@ -164,10 +177,7 @@
       var allValid = results.every(Boolean);
 
       if (!allValid) {
-        summary.textContent =
-          "Please fix the highlighted fields before submitting.";
-        summary.hidden = false;
-        summary.focus();
+        showSubmitError("Please fix the highlighted fields before submitting.");
 
         // Move focus to the first invalid field for a fast fix path.
         var firstInvalidKey = Object.keys(fields).find(
@@ -179,12 +189,48 @@
         return;
       }
 
-      // TODO: send to backend — see comment block above this handler.
-      // Example once you have an endpoint:
-      // fetch("/api/contact", { method: "POST", body: new FormData(form) });
+      setSubmitting(true);
 
-      form.reset();
-      success.hidden = false;
+      fetch(form.action, {
+        method: form.method || "POST",
+        body: new FormData(form),
+        headers: { Accept: "application/json" },
+      })
+        .then(function (response) {
+          if (response.ok) {
+            form.reset();
+            // Unhiding is enough to announce this: role="status" carries an
+            // implicit aria-live="polite", and a success toast shouldn't
+            // steal focus the way the error summary below does.
+            success.hidden = false;
+            return;
+          }
+
+          // Formspree returns { errors: [{ message }] } on 4xx/5xx; fall
+          // back to a generic message if the response isn't in that shape.
+          return response
+            .json()
+            .catch(function () { return null; })
+            .then(function (data) {
+              var detail =
+                data && Array.isArray(data.errors) && data.errors.length
+                  ? data.errors.map(function (e) { return e.message; }).join(" ")
+                  : null;
+              showSubmitError(
+                detail ||
+                  "Something went wrong sending your message. Please try again, or email me directly."
+              );
+            });
+        })
+        .catch(function () {
+          // Network failure (offline, blocked request, etc.)
+          showSubmitError(
+            "Something went wrong sending your message. Please check your connection and try again, or email me directly."
+          );
+        })
+        .then(function () {
+          setSubmitting(false);
+        });
     });
   }
 

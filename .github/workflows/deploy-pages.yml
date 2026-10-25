@@ -28,6 +28,8 @@ jobs:
 
       - name: Enable GitHub Pages (if not already)
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       # Publish only the actual site (index.html, css/, js/) — not the
       # whole repo (.claude/, .git metadata, workflow source, etc.).
